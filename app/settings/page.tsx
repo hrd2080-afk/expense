@@ -5,6 +5,7 @@ import { Database, Trash2, AlertTriangle } from 'lucide-react';
 import { useApp } from '@/components/providers/AppDataContext';
 import CategoryManager from '@/components/settings/CategoryManager';
 import BudgetSettings from '@/components/budget/BudgetSettings';
+import BackupRestore from '@/components/settings/BackupRestore';
 import { getMonthTransactions, getTotalExpense } from '@/utils/calculations';
 import { getCurrentYearMonth } from '@/utils/formatters';
 
@@ -85,6 +86,9 @@ export default function SettingsPage() {
                 ))}
               </div>
             </div>
+
+            {/* 백업/복원 */}
+            <BackupRestore />
 
             {/* 샘플 데이터 */}
             <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">

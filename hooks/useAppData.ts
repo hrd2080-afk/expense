@@ -143,13 +143,23 @@ export function useAppData() {
             : c),
       })), []);
 
-  const resetData   = useCallback(() => setState(DEFAULT_STATE), []);
+  const bulkAddTransactions = useCallback(
+    (ts: Omit<Transaction, 'id' | 'createdAt'>[]) =>
+      setState(prev => ({
+        ...prev,
+        transactions: [
+          ...prev.transactions,
+          ...ts.map(t => ({ ...t, id: uid(), createdAt: new Date().toISOString() })),
+        ],
+      })), []);
+
+  const resetData      = useCallback(() => setState(DEFAULT_STATE), []);
   const loadSampleData = useCallback(() => setState(generateSampleData()), []);
 
   return {
     ...state,
     isLoaded,
-    addTransaction, updateTransaction, deleteTransaction,
+    addTransaction, updateTransaction, deleteTransaction, bulkAddTransactions,
     setMonthlyBudget, deleteMonthlyBudget,
     addMainCategory, updateMainCategory, deleteMainCategory,
     addSubCategory, updateSubCategory, deleteSubCategory,
