@@ -1,4 +1,4 @@
-const CACHE = 'gagyebu-v1';
+const CACHE = 'gagyebu-v2';
 
 const APP_SHELL = [
   '/',
