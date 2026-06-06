@@ -91,17 +91,17 @@ export const DEFAULT_CATEGORIES: MainCategory[] = [
 
   // ─── 수입 ───
   {
-    id: 'salary', name: '근로소득', type: 'income', color: '#2563eb',
-    subCategories: [
-      sub('salary-monthly', '월급'),
-      sub('salary-bonus',   '상여금'),
-    ],
-  },
-  {
     id: 'biz-income', name: '사업소득', type: 'income', color: '#7c3aed',
     subCategories: [
       sub('biz-income-cleaning', '청소업 매출'),
       sub('biz-income-other',    '기타 매출'),
+    ],
+  },
+  {
+    id: 'salary', name: '근로소득', type: 'income', color: '#2563eb',
+    subCategories: [
+      sub('salary-monthly', '월급'),
+      sub('salary-bonus',   '상여금'),
     ],
   },
   {

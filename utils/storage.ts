@@ -84,12 +84,18 @@ export function loadAppState(): AppState {
     const v2 = localStorage.getItem(KEY_V2);
     if (v2) {
       const raw = JSON.parse(v2);
+      const stored: MainCategory[] = Array.isArray(raw.categories) && raw.categories.length
+        ? raw.categories as MainCategory[]
+        : DEFAULT_CATEGORIES;
+      // DEFAULT_CATEGORIES 순서 기준으로 정렬, 사용자 추가 카테고리는 뒤에 붙임
+      const sorted = [
+        ...DEFAULT_CATEGORIES.map(def => stored.find(c => c.id === def.id) ?? def),
+        ...stored.filter(c => !DEFAULT_CATEGORIES.find(d => d.id === c.id)),
+      ];
       return {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         transactions: ((raw.transactions ?? []) as any[]).map(migrateTransaction),
-        categories: Array.isArray(raw.categories) && raw.categories.length
-          ? mergeWithDefaultFlags(raw.categories as MainCategory[])
-          : DEFAULT_CATEGORIES,
+        categories: mergeWithDefaultFlags(sorted),
         budgets: migrateBudgets(raw),
       };
     }
