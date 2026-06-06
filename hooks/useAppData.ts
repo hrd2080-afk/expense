@@ -1,13 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import type { User }                   from '@supabase/supabase-js';
+import { useState, useEffect, useCallback } from 'react';
 import type { AppState, Transaction, MonthlyBudget, MainCategory, SubCategory } from '@/types';
-import { loadAppState, saveAppState }  from '@/utils/storage';
-import { generateSampleData }          from '@/utils/sampleData';
+import { loadAppState, saveAppState } from '@/utils/storage';
+import { generateSampleData } from '@/utils/sampleData';
 import { DEFAULT_CATEGORIES, UNCLASSIFIED_SUB } from '@/utils/defaultCategories';
-import { makeSubId, makeMainId }       from '@/utils/categories';
-import { supabase, loadFromCloud, saveToCloud } from '@/utils/supabase';
+import { makeSubId, makeMainId } from '@/utils/categories';
 
 const DEFAULT_STATE: AppState = {
   transactions: [],
@@ -15,140 +13,23 @@ const DEFAULT_STATE: AppState = {
   budgets:      {},
 };
 
-export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error' | 'offline';
-
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
 export function useAppData() {
-  const [state, setState]           = useState<AppState>(DEFAULT_STATE);
-  const [isLoaded, setIsLoaded]     = useState(false);
-  const [user, setUser]             = useState<User | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
-  const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
+  const [state, setState] = useState<AppState>(DEFAULT_STATE);
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  const saveTimer    = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const isOwnUpdate  = useRef(false); // Realtime 에코 방지
-
-  // ── Auth + 초기 데이터 로드 ───────────────────────────────────
+  // 초기 로드
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-
-        if (event === 'INITIAL_SESSION') {
-          if (currentUser) {
-            // 로그인 상태 → 클라우드 우선
-            setSyncStatus('syncing');
-            const cloud = await loadFromCloud(currentUser.id).catch(() => null);
-            if (cloud) {
-              setState(cloud);
-              saveAppState(cloud);
-            } else {
-              // 클라우드에 없으면 로컬 데이터 업로드
-              const local = loadAppState();
-              setState(local);
-              await saveToCloud(currentUser.id, local).catch(() => {});
-            }
-            setSyncStatus('synced');
-          } else {
-            // 비로그인 → 로컬스토리지
-            setState(loadAppState());
-          }
-          setAuthLoading(false);
-          setIsLoaded(true);
-        }
-
-        if (event === 'SIGNED_IN' && currentUser) {
-          setSyncStatus('syncing');
-          const cloud = await loadFromCloud(currentUser.id).catch(() => null);
-          if (cloud) {
-            setState(cloud);
-            saveAppState(cloud);
-          } else {
-            await saveToCloud(currentUser.id, state).catch(() => {});
-          }
-          setSyncStatus('synced');
-        }
-
-        if (event === 'SIGNED_OUT') {
-          setSyncStatus('idle');
-        }
-      }
-    );
-    return () => subscription.unsubscribe();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    setState(loadAppState());
+    setIsLoaded(true);
   }, []);
 
-  // ── 상태 변경 시 저장 (로컬 즉시 + 클라우드 디바운스) ─────────
+  // 상태 변경 시 로컬 저장
   useEffect(() => {
     if (!isLoaded) return;
-    saveAppState(state); // 로컬 항상 저장
-
-    if (user) {
-      clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(async () => {
-        isOwnUpdate.current = true;
-        setSyncStatus('syncing');
-        try {
-          await saveToCloud(user.id, state);
-          setSyncStatus('synced');
-        } catch {
-          setSyncStatus('error');
-        } finally {
-          setTimeout(() => { isOwnUpdate.current = false; }, 500);
-        }
-      }, 1500);
-    }
-
-    return () => clearTimeout(saveTimer.current);
-  }, [state, isLoaded, user]);
-
-  // ── Realtime: 다른 기기 변경사항 수신 ─────────────────────────
-  useEffect(() => {
-    if (!user) return;
-
-    const channel = supabase
-      .channel(`user-${user.id}`)
-      .on(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        'postgres_changes' as any,
-        { event: 'UPDATE', schema: 'public', table: 'user_data',
-          filter: `user_id=eq.${user.id}` },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (payload: any) => {
-          if (isOwnUpdate.current) return; // 내 업데이트는 무시
-          const r = payload.new;
-          setState({
-            transactions: r.transactions ?? [],
-            categories:   r.categories?.length ? r.categories : DEFAULT_CATEGORIES,
-            budgets:      r.budgets ?? {},
-          });
-        }
-      )
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [user]);
-
-  // ── Auth 함수 ─────────────────────────────────────────────────
-  const signIn = useCallback(
-    (email: string, password: string) =>
-      supabase.auth.signInWithPassword({ email, password }),
-    [],
-  );
-
-  const signUp = useCallback(
-    (email: string, password: string) =>
-      supabase.auth.signUp({ email, password }),
-    [],
-  );
-
-  const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
-    setState(DEFAULT_STATE);
-    saveAppState(DEFAULT_STATE);
-  }, []);
+    saveAppState(state);
+  }, [state, isLoaded]);
 
   // ── Transactions ──────────────────────────────────────────────
   const addTransaction = useCallback(
@@ -262,14 +143,12 @@ export function useAppData() {
             : c),
       })), []);
 
-  // ── Misc ──────────────────────────────────────────────────────
   const resetData   = useCallback(() => setState(DEFAULT_STATE), []);
   const loadSampleData = useCallback(() => setState(generateSampleData()), []);
 
   return {
     ...state,
-    isLoaded, user, authLoading, syncStatus,
-    signIn, signUp, signOut,
+    isLoaded,
     addTransaction, updateTransaction, deleteTransaction,
     setMonthlyBudget, deleteMonthlyBudget,
     addMainCategory, updateMainCategory, deleteMainCategory,
