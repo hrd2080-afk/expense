@@ -4,6 +4,7 @@ export interface SubCategory {
   id: string;
   name: string;
   excludeFromBudget?: boolean; // true면 예산 계산에서 제외
+  excludeFromStats?: boolean;  // true면 통계에서 제외
 }
 
 export interface MainCategory {

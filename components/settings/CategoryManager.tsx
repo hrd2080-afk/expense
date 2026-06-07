@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, Check, X, ChevronDown, ChevronRight, MinusCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Check, X, ChevronDown, ChevronRight } from 'lucide-react';
 import { useApp } from '@/components/providers/AppDataContext';
 import type { MainCategory, TransactionType } from '@/types';
 import { getCategoriesByType } from '@/utils/categories';
@@ -17,7 +17,7 @@ export default function CategoryManager() {
     categories, transactions,
     addMainCategory, updateMainCategory, deleteMainCategory,
     addSubCategory, updateSubCategory, deleteSubCategory,
-    toggleSubBudgetExclusion,
+    toggleSubBudgetExclusion, toggleSubStatsExclusion,
   } = useApp();
 
   const [tab, setTab]             = useState<TransactionType>('expense');
@@ -262,36 +262,40 @@ export default function CategoryManager() {
                         ) : (
                           <>
                             <span className="flex-1 text-sm text-gray-700">{sub.name}</span>
-                            {/* 예산 제외 배지 */}
-                            {sub.excludeFromBudget && (
-                              <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded-full shrink-0 border border-slate-200">
-                                예산 제외
-                              </span>
-                            )}
-                            <div className="hidden group-hover/sub:flex items-center gap-1">
+                            <div className="flex items-center gap-1.5 shrink-0">
                               {/* 예산 제외 토글 */}
                               <button
                                 onClick={() => toggleSubBudgetExclusion(cat.id, sub.id, !sub.excludeFromBudget)}
-                                title={sub.excludeFromBudget ? '예산에 포함하기' : '예산에서 제외하기'}
-                                className={`p-1 rounded text-xs transition-colors ${
+                                className={`text-[11px] font-medium px-2 py-0.5 rounded-full border transition-colors ${
                                   sub.excludeFromBudget
-                                    ? 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
-                                    : 'text-gray-300 hover:text-slate-500 hover:bg-slate-50'
+                                    ? 'bg-slate-200 text-slate-700 border-slate-300'
+                                    : 'bg-white text-slate-400 border-slate-200'
                                 }`}
                               >
-                                <MinusCircle size={12} />
+                                예산제외
+                              </button>
+                              {/* 통계 제외 토글 */}
+                              <button
+                                onClick={() => toggleSubStatsExclusion(cat.id, sub.id, !sub.excludeFromStats)}
+                                className={`text-[11px] font-medium px-2 py-0.5 rounded-full border transition-colors ${
+                                  sub.excludeFromStats
+                                    ? 'bg-violet-200 text-violet-700 border-violet-300'
+                                    : 'bg-white text-violet-400 border-violet-200'
+                                }`}
+                              >
+                                통계제외
                               </button>
                               <button
                                 onClick={() => startEditSub(cat.id, sub.id, sub.name)}
-                                className="p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition-colors"
+                                className="p-1.5 rounded-lg text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition-colors"
                               >
-                                <Pencil size={12} />
+                                <Pencil size={14} />
                               </button>
                               <button
                                 onClick={() => handleDeleteSub(cat.id, sub.id, sub.name)}
-                                className="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
                               >
-                                <Trash2 size={12} />
+                                <Trash2 size={14} />
                               </button>
                             </div>
                           </>

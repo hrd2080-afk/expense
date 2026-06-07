@@ -143,6 +143,17 @@ export function useAppData() {
             : c),
       })), []);
 
+  const toggleSubStatsExclusion = useCallback(
+    (mainCategoryId: string, subId: string, exclude: boolean) =>
+      setState(prev => ({
+        ...prev,
+        categories: prev.categories.map(c =>
+          c.id === mainCategoryId
+            ? { ...c, subCategories: c.subCategories.map(s =>
+                s.id === subId ? { ...s, excludeFromStats: exclude } : s) }
+            : c),
+      })), []);
+
   const bulkAddTransactions = useCallback(
     (ts: Omit<Transaction, 'id' | 'createdAt'>[]) =>
       setState(prev => ({
@@ -163,7 +174,7 @@ export function useAppData() {
     setMonthlyBudget, deleteMonthlyBudget,
     addMainCategory, updateMainCategory, deleteMainCategory,
     addSubCategory, updateSubCategory, deleteSubCategory,
-    toggleSubBudgetExclusion,
+    toggleSubBudgetExclusion, toggleSubStatsExclusion,
     resetData, loadSampleData,
   };
 }

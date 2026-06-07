@@ -114,10 +114,18 @@ export default function StatsPage() {
 
   // ── 기본 데이터 ────────────────────────────────────────────────
   const monthTx    = getMonthTransactions(transactions, month);
+
+  // 통계 제외 세부항목 ID 집합
+  const statsExcludedIds = new Set(
+    categories.flatMap(c => c.subCategories.filter(s => s.excludeFromStats).map(s => s.id))
+  );
+  const statsTx   = transactions.filter(t => !statsExcludedIds.has(t.subCategoryId));
+  const monthStatsTx = monthTx.filter(t => !statsExcludedIds.has(t.subCategoryId));
+
   const income     = getTotalIncome(monthTx);
-  const expense    = getTotalExpense(monthTx);
+  const expense    = getTotalExpense(monthStatsTx);
   const balance    = income - expense;
-  const stats      = getMonthStats(transactions, month);
+  const stats      = getMonthStats(statsTx, month);
 
   // 전월
   const [py, pm]   = month.split('-').map(Number);
@@ -132,15 +140,16 @@ export default function StatsPage() {
   const remainDays     = isCurrent ? getRemainingDaysInMonth() : 0;
 
   // 지출 분석
-  const mainStats  = getMainCategoryStats(monthTx);
+  const mainStats  = getMainCategoryStats(monthStatsTx);
   const pieData    = Object.values(mainStats)
+    .filter(s => s.amount > 0)
     .sort((a, b) => b.amount - a.amount)
     .map(s => ({ id: s.id, name: s.name, amount: s.amount, color: categories.find(c => c.id === s.id)?.color ?? '#94a3b8' }));
 
-  const subRanking = getAllSubCategoryRanking(monthTx);
+  const subRanking = getAllSubCategoryRanking(monthStatsTx);
   const visibleSubs = showAllSub ? subRanking : subRanking.slice(0, 8);
 
-  const momData = getMonthOverMonthComparison(transactions, month, prevMonth);
+  const momData = getMonthOverMonthComparison(statsTx, month, prevMonth);
 
   // 수입 분석
   const incomeMap: Record<string, { id: string; name: string; amount: number; color: string; count: number }> = {};
@@ -160,13 +169,13 @@ export default function StatsPage() {
   ).map(s => ({ ...s, type: 'income' as const }));
 
   // 기록/추이
-  const weekly     = getWeeklyExpense(transactions, month);
+  const weekly     = getWeeklyExpense(statsTx, month);
   const weeklyMax  = Math.max(...weekly.map(w => w.amount), 1);
-  const dowData    = getExpenseByDayOfWeek(transactions, month);
+  const dowData    = getExpenseByDayOfWeek(statsTx, month);
   const dowMax     = Math.max(...dowData.map(d => d.amount), 1);
   const past6      = getPastMonths(6);
-  const monthly    = getMonthlyData(transactions, past6);
-  const budgetComp = getMonthlyBudgetComparison(transactions, budgets, past6);
+  const monthly    = getMonthlyData(statsTx, past6);
+  const budgetComp = getMonthlyBudgetComparison(statsTx, budgets, past6);
 
   return (
     <div className="min-h-screen">
